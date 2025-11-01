@@ -76,3 +76,43 @@ if ($LASTEXITCODE -ne 0) {
   Pop-Location
   exit 0
 }
+# --- Write scheduler status JSON for dashboard (FIXED)
+try {
+  $taskRaw = (schtasks /Query /TN "MajelaniDailyPush" /V /FO LIST 2>$null) -join "`n"
+
+  function Get-Field([string]$key, [string]$blob) {
+    $pattern = ('{0}:\s*(.+)' -f [regex]::Escape($key))
+    if ($blob -match $pattern) { return $matches[1].Trim() } else { return "" }
+  }
+
+  $taskStatus  = Get-Field -key 'Status'         -blob $taskRaw
+  $taskLastRun = Get-Field -key 'Last Run Time'  -blob $taskRaw
+  $taskNextRun = Get-Field -key 'Next Run Time'  -blob $taskRaw
+  $taskLastRes = Get-Field -key 'Last Result'    -blob $taskRaw
+
+  $headShort = (& git rev-parse --short HEAD 2>$null).Trim()
+
+  $payload = [ordered]@{
+    updated_utc = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+    repo        = @{ head = $headShort }
+    task        = @{
+      name        = 'MajelaniDailyPush'
+      status      = $taskStatus
+      last_run    = $taskLastRun
+      next_run    = $taskNextRun
+      last_result = $taskLastRes
+    }
+    report      = @{
+      path = $dstFile
+      size = (Get-Item $dstFile).Length
+    }
+  } | ConvertTo-Json -Depth 5
+
+  $statusPath = 'C:\Users\hazot\Downloads\Majelani_Supervisor_RealReady\supervisor_core\output\status.json'
+  Set-Content -Path $statusPath -Value $payload -Encoding UTF8
+
+  Add-Content $logFile ("[{0}] Wrote status.json -> {1}" -f $ts, $statusPath)
+}
+catch {
+  Add-Content $logFile ("[{0}] WARN: failed to write status.json: {1}" -f $ts, $_.Exception.Message)
+}
