@@ -1,0 +1,51 @@
+{
+  "timestamp": "2025-10-31T23:05:37.180535Z",
+  "plugins": [
+    "maj-installment-payments",
+    "maj-cash-register"
+  ],
+  "decisions": [
+    {
+      "plugin_id": "maj-installment-payments",
+      "action": "rollout_advance",
+      "reason": "Advance rollout: healthy metrics",
+      "metrics": {
+        "error_rate": 0.004,
+        "latency_p95_ms": 760
+      }
+    },
+    {
+      "plugin_id": "maj-cash-register",
+      "action": "rollback",
+      "reason": "Auto rollback: err=0.026, p95=1480ms",
+      "metrics": {
+        "error_rate": 0.026,
+        "latency_p95_ms": 1480
+      }
+    }
+  ],
+  "ops_results": [
+    {
+      "plugin_id": "maj-installment-payments",
+      "current_stage": 50,
+      "reason": "Advance rollout: healthy metrics"
+    },
+    {
+      "plugin_id": "maj-cash-register",
+      "rolled_back": true,
+      "reason": "Auto rollback: err=0.026, p95=1480ms"
+    }
+  ],
+  "security_findings": [],
+  "governance_alerts": [
+    {
+      "plugin_id": "maj-cash-register",
+      "issue": "governance_stale",
+      "days_since": 113,
+      "detail": {
+        "plugin_id": "maj-cash-register",
+        "last_review": "2025-07-10"
+      }
+    }
+  ]
+}
